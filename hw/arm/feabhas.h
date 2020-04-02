@@ -18,10 +18,7 @@ typedef struct {
   bool active_high;
 } FeabhasButtonMap;
 typedef struct {
-  int dbgserial_uart_index;
-  int feabhas_control_uart_index;
-
-  FeabhasButtonMap button_map[FEABHAS_NUM_BUTTONS];
+  // FeabhasButtonMap button_map[FEABHAS_NUM_BUTTONS];
   uint32_t gpio_idr_masks[STM32F4XX_GPIO_COUNT];
 
   // memory sizes

@@ -2,6 +2,8 @@
 #include "hw/boards.h"
 #include "hw/ssi.h"
 
+#include "sysemu/sysemu.h"
+
 const static FeabhasBoardConfig s_board_config_silk_bb = {
     // .dbgserial_uart_index = 0, // USART1
     // .feabhas_control_uart_index =
@@ -61,15 +63,20 @@ static void feabhas_32f412_init(MachineState *machine,
   qdev_connect_gpio_out((DeviceState *)gpio[STM32_GPIOD_INDEX], 9, led_irq[1]);
   qdev_connect_gpio_out((DeviceState *)gpio[STM32_GPIOD_INDEX], 10, led_irq[2]);
   qdev_connect_gpio_out((DeviceState *)gpio[STM32_GPIOD_INDEX], 11, led_irq[3]);
+
+  // connect UART3 to qemu serial port 0
+  // this allows only one -serial to connect to this device
+  stm32_uart_connect((Stm32Uart *)uart[2], serial_hds[0],
+                     STM32_USART3_NO_REMAP);
 }
 
 static void feabhas_init(MachineState *machine) {
   feabhas_32f412_init(machine, &s_board_config_silk_bb);
 }
 
-static void feabhas_machine_init(MachineClass *mc) {
-  mc->desc = "Feabhas Training Board";
+static void feabhas_serial_machine_init(MachineClass *mc) {
+  mc->desc = "Feabhas Training Board - USART support";
   mc->init = feabhas_init;
 }
 
-DEFINE_MACHINE("feabhas", feabhas_machine_init)
+DEFINE_MACHINE("feabhas-serial", feabhas_serial_machine_init)

@@ -34,4 +34,5 @@ obj-y += pebble_control.o
 obj-y += pebble_robert.o
 obj-y += pebble_silk.o
 obj-y += feabhas.o
+obj-y += feabhas-serial.o
 
