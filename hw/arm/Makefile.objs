@@ -35,4 +35,5 @@ obj-y += pebble_robert.o
 obj-y += pebble_silk.o
 obj-y += feabhas.o
 obj-y += feabhas-serial.o
+obj-y += feabhas-wms.o
 
