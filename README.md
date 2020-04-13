@@ -14,6 +14,16 @@ QEMU requires that development packages for glib20 and pixman are installed.
 Install the `devel/glib20` and `x11/pixman` ports.
 
 ### Linux
+Required additional packages
+
+    git (30 MiB), version manager
+    glib2.0-dev (9 MiB), this automatically includes zlib1g-dev
+    libfdt-devel
+
+For Ubuntu LTS Trusty (and maybe other Debian based distributions), all required additional packages can be installed like this:
+```
+sudo apt-get install git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
+```
 
 ### Mac OS X
 
