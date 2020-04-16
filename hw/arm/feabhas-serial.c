@@ -26,7 +26,7 @@ const static FeabhasBoardConfig s_board_config_silk_bb = {
     .ram_size = 256, /* Kbytes */
 };
 
-static const char *LED_ID[] = {"D6", "D7", "D8", "D9"};
+static const char *LED_ID[] = {"D6", "D5", "D4", "D3"};
 static void led_irq_handler(void *opaque, int n, int level) {
   switch (level) {
   case 0:
