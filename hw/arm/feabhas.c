@@ -28,10 +28,10 @@ static const char *LED_ID[] = {"D6", "D5", "D4", "D3"};
 static void led_irq_handler(void *opaque, int n, int level) {
   switch (level) {
   case 0:
-    printf("%d:%s Off\n", n, LED_ID[n]);
+    printf("%s Off\n", LED_ID[n]);
     break;
   case 1:
-    printf("%d:%s On\n", n, LED_ID[n]);
+    printf("%s On\n", LED_ID[n]);
     break;
   }
 }

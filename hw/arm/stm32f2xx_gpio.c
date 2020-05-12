@@ -61,6 +61,7 @@ struct stm32f2xx_gpio {
 
   stm32_periph_t periph;
   uint32_t idr_mask;
+  uint32_t odr_mask;
 
   qemu_irq pin[STM32_GPIO_PIN_COUNT];
   qemu_irq exti[STM32_GPIO_PIN_COUNT];
@@ -89,7 +90,7 @@ static uint64_t stm32f2xx_gpio_read(void *arg, hwaddr offset,
                                     unsigned int size) {
 
   stm32f2xx_gpio *s = arg;
-  if (!check_rcc_enabled(s, "IDR")) {
+  if (!check_rcc_enabled(s, "READ")) {
     return 0;
   }
   offset >>= 2;
@@ -104,11 +105,20 @@ static void f2xx_update_odr(stm32f2xx_gpio *s, uint16_t val) {
     return;
   }
 
+  val &= s->odr_mask; // only allow writes to outputs
+
   uint16_t changed = s->regs[R_GPIO_ODR] ^ val;
 
   for (int i = 0; i < STM32_GPIO_PIN_COUNT; i++) {
     if ((changed & 1 << i) == 0)
       continue;
+
+    // reflect output on input
+    if ((val & 1 << i) == 0) {
+      s->regs[R_GPIO_IDR] &= ~(1 << i);
+    } else {
+      s->regs[R_GPIO_IDR] |= (1 << i);
+    }
 
     DPRINTF("%s changing bit %i to %d\n", s->busdev.parent_obj.id, i,
             !!(val & 1 << i));
@@ -136,6 +146,10 @@ static void f2xx_update_mode(stm32f2xx_gpio *s, uint32_t val) {
             setting);
     bool is_alternate_function = (setting == 2);
     qemu_set_irq(s->alternate_function[i], is_alternate_function);
+    bool is_output = (setting == 1);
+    if (is_output || is_alternate_function) {
+      s->odr_mask |= (1 << i);
+    }
   }
   s->regs[R_GPIO_MODER] = val;
 }
@@ -180,6 +194,13 @@ static void stm32f2xx_gpio_write(void *arg, hwaddr addr, uint64_t data,
     f2xx_update_odr(s, new_val);
     break;
   }
+  case R_GPIO_OTYPER: {
+    uint16_t new_val = s->regs[R_GPIO_OTYPER];
+    new_val &= ~(data & 0xffff);
+    new_val |= data & 0xffff;
+    s->regs[R_GPIO_OTYPER] = new_val;
+    break;
+  }
   default:
     qemu_log_mask(LOG_UNIMP,
                   "f2xx GPIO %c reg 0x%x:%d write (0x%x) unimplemented\n",
@@ -199,6 +220,10 @@ static const MemoryRegionOps stm32f2xx_gpio_ops = {
 static void stm32f2xx_gpio_reset(DeviceState *dev) {
   stm32f2xx_gpio *s = FROM_SYSBUS(stm32f2xx_gpio, SYS_BUS_DEVICE(dev));
 
+  for (uint32_t i = 0; i < R_GPIO_MAX; ++i) {
+    s->regs[i] = 0;
+  }
+
   switch (s->periph) {
   case 0:
     s->regs[R_GPIO_MODER] = 0xa8000000;
@@ -211,13 +236,14 @@ static void stm32f2xx_gpio_reset(DeviceState *dev) {
     s->regs[R_GPIO_PUPDR] = 0x00000100;
     break;
   default:
-    s->regs[R_GPIO_MODER] = 0x00000000;
-    s->regs[R_GPIO_OSPEEDR] = 0x00000000;
-    s->regs[R_GPIO_PUPDR] = 0x00000000;
+    // s->regs[R_GPIO_MODER] = 0x00000000;
+    // s->regs[R_GPIO_OSPEEDR] = 0x00000000;
+    // s->regs[R_GPIO_PUPDR] = 0x00000000;
     break;
   }
   /* Mask out the IDR bits as specified */
-  s->regs[R_GPIO_IDR] = 0x0000ffff & ~(s->idr_mask);
+  //   s->regs[R_GPIO_IDR] = 0x0000ffff & ~(s->idr_mask);
+  s->regs[R_GPIO_IDR] = 0;
 }
 
 static void f2xx_gpio_set(void *arg, int pin, int level) {
@@ -269,6 +295,7 @@ static int stm32f2xx_gpio_init(SysBusDevice *dev) {
 static Property stm32f2xx_gpio_properties[] = {
     DEFINE_PROP_INT32("periph", stm32f2xx_gpio, periph, -1),
     DEFINE_PROP_UINT32("idr-mask", stm32f2xx_gpio, idr_mask, 0),
+    DEFINE_PROP_UINT32("odr-mask", stm32f2xx_gpio, odr_mask, 0),
     DEFINE_PROP_PTR("stm32f2xx_rcc", stm32f2xx_gpio, stm32_rcc_prop),
     DEFINE_PROP_END_OF_LIST()};
 
