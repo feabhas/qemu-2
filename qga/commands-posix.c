@@ -650,8 +650,8 @@ static int dev_major_minor(const char *devpath, unsigned int *devmajor,
     return -2;
   }
   if (S_ISBLK(st.st_mode)) {
-    *devmajor = major(st.st_rdev);
-    *devminor = minor(st.st_rdev);
+    // *devmajor = major(st.st_rdev);
+    // *devminor = minor(st.st_rdev);
     return 0;
   }
   return -1;
