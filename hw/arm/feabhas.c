@@ -54,6 +54,7 @@ static void feabhas_32f412_init(MachineState *machine,
 
   // Set the feabhas specific QEMU settings on the target
   //   pebble_set_qemu_settings(rtc_dev);
+  // stm32f2xx_rcc
 
   /* Connect LED to GPIO D pin 8 & 9 */
   qemu_irq *led_irq = qemu_allocate_irqs(led_irq_handler, NULL, 4);
