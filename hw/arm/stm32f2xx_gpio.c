@@ -71,31 +71,39 @@ struct stm32f2xx_gpio {
   uint32_t ccr;
 };
 
+static bool check_rcc_enabled(stm32f2xx_gpio *s, const char *reg) {
+  uint32_t rcc_set = s->rcc->RCC_AHB1ENR &
+                     (1 << (STM32_GPIO_PERIPH_FROM_INDEX(s->periph) - 2));
+  if (rcc_set == 0) {
+    printf("You are trying to access the %s register of GPIO Port %c without "
+           "enabling "
+           "the port "
+           "IO clock\n",
+           reg, 'A' + (STM32_GPIO_PERIPH_FROM_INDEX(s->periph) - 2));
+    return false;
+  }
+  return true;
+}
+
 static uint64_t stm32f2xx_gpio_read(void *arg, hwaddr offset,
                                     unsigned int size) {
-  stm32f2xx_gpio *s = arg;
-  uint32_t r;
 
+  stm32f2xx_gpio *s = arg;
+  if (!check_rcc_enabled(s, "IDR")) {
+    return 0;
+  }
   offset >>= 2;
-  r = s->regs[offset];
+  uint32_t r = s->regs[offset];
   // printf("GPIO unit %d reg %x return 0x%x\n", s->periph, (int)offset << 2,
   // r);
   return r;
 }
 
 static void f2xx_update_odr(stm32f2xx_gpio *s, uint16_t val) {
-
-  //   printf("gpio %d %u %u\n", STM32_GPIO_PERIPH_FROM_INDEX(s->periph) - 1,
-  //          s->rcc->RCC_AHB1ENR,
-  //          (1 << (STM32_GPIO_PERIPH_FROM_INDEX(s->periph) - 2)));
-  uint32_t rcc_set = s->rcc->RCC_AHB1ENR &
-                     (1 << (STM32_GPIO_PERIPH_FROM_INDEX(s->periph) - 2));
-  if (rcc_set == 0) {
-    printf("You are trying to write to GPIO Port %c without enabling the port "
-           "IO clock\n",
-           'A' + (STM32_GPIO_PERIPH_FROM_INDEX(s->periph) - 2));
+  if (!check_rcc_enabled(s, "ODR")) {
     return;
   }
+
   uint16_t changed = s->regs[R_GPIO_ODR] ^ val;
 
   for (int i = 0; i < STM32_GPIO_PIN_COUNT; i++) {
@@ -104,17 +112,20 @@ static void f2xx_update_odr(stm32f2xx_gpio *s, uint16_t val) {
 
     DPRINTF("%s changing bit %i to %d\n", s->busdev.parent_obj.id, i,
             !!(val & 1 << i));
-    printf("gpio %u pin %u = %c\n", s->periph, i, val & 1 << i ? 'H' : 'l');
+    // printf("gpio %u pin %u = %c\n", s->periph, i, val & 1 << i ? 'H' : 'l');
     qemu_set_irq(s->pin[i], !!(val & 1 << i));
   }
   s->regs[R_GPIO_ODR] = val;
 }
 
 static void f2xx_update_mode(stm32f2xx_gpio *s, uint32_t val) {
-  int i;
+  if (!check_rcc_enabled(s, "MODER")) {
+    return;
+  }
+
   uint32_t prev_value = s->regs[R_GPIO_MODER];
 
-  for (i = 0; i < STM32_GPIO_PIN_COUNT; i++) {
+  for (int i = 0; i < STM32_GPIO_PIN_COUNT; i++) {
     uint32_t setting = (val >> i * 2) & 0x03;
     uint32_t prev_setting = (prev_value >> i * 2) & 0x03;
     if (setting == prev_setting) {
@@ -131,6 +142,7 @@ static void f2xx_update_mode(stm32f2xx_gpio *s, uint32_t val) {
 
 static void stm32f2xx_gpio_write(void *arg, hwaddr addr, uint64_t data,
                                  unsigned int size) {
+
   stm32f2xx_gpio *s = arg;
   int offset = addr % 3;
 
@@ -170,8 +182,9 @@ static void stm32f2xx_gpio_write(void *arg, hwaddr addr, uint64_t data,
   }
   default:
     qemu_log_mask(LOG_UNIMP,
-                  "f2xx GPIO %d reg 0x%x:%d write (0x%x) unimplemented\n",
-                  s->periph, (int)addr << 2, offset, (int)data);
+                  "f2xx GPIO %c reg 0x%x:%d write (0x%x) unimplemented\n",
+                  'A' + (STM32_GPIO_PERIPH_FROM_INDEX(s->periph) - 2),
+                  (int)addr << 2, offset, (int)data);
     s->regs[addr] = data;
     break;
   }

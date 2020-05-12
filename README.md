@@ -30,16 +30,20 @@ sudo apt-get install git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
 ### Windows
 
 ## Building
-Commands for a typical build:
-
+Commands for a typical build. First update the nested repo dtc:
 ```
 git submodule update --init dtc
+```
+
+### Linux
+```
 ./configure --disable-werror --enable-debug --target-list="arm-softmmu" \
-    --extra-cflags="-DSTM32_UART_NO_BAUD_DELAY -std=c99"
+    --extra-cflags="-DSTM32_UART_NO_BAUD_DELAY"
 make
 ```
 
-Summary set of configure options that are useful when developing (tested only on OS X 10.9.5):
+### Mac OS X
+Summary set of configure options that are useful when developing (tested on macOS 10.15.3):
 
         ./configure --enable-tcg-interpreter --extra-ldflags=-g \
         --with-coroutine=gthread --enable-debug-tcg --enable-cocoa \
@@ -48,7 +52,7 @@ Summary set of configure options that are useful when developing (tested only on
         --extra-cflags=-DDEBUG_STM32_UART --extra-cflags=-DSTM32_UART_NO_BAUD_DELAY \
         --extra-cflags=-DDEBUG_GIC
 
-####Configure options which control the STM32 implementation:
+#### Configure options which control the STM32 implementation:
 
     --extra-cflags=-DDEBUG_CLKTREE
         Print out clock tree debug statements.
@@ -71,11 +75,11 @@ Summary set of configure options that are useful when developing (tested only on
         software.  Although less realisitic, it is safer NOT to use this, in case the VM is
         running slow.
 
-####Other QEMU configure options which are useful for troubleshooting:
+#### Other QEMU configure options which are useful for troubleshooting:
     --extra-cflags=-DDEBUG_GIC
         Extra logging around which interrupts are asserted
 
-####qemu-system-arm options which are useful for troubleshooting:
+#### qemu-system-arm options which are useful for troubleshooting:
     -d ?
         To see available log levels
 
@@ -85,10 +89,13 @@ Summary set of configure options that are useful when developing (tested only on
         used for this to work.
 
 
-Useful make commands when rebuilding:
+### Useful make commands when rebuilding:
 
         make defconfig
         make clean
+
+
+# ORGINAL README - NOT TESTED
 
 ## Generating Images
 * Use `./waf build qemu_image_spi` to generate `qemu_spi_flash.bin` from tintin.
